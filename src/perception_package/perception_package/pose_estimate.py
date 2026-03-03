@@ -1,26 +1,34 @@
 import cv2
 import numpy as np
+import argparse
+import sys
 
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_system_default
+from rclpy.duration import Duration
+from rclpy.utilities import remove_ros_args
 
 from sensor_msgs.msg import PointCloud2
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, PoseStamped, Pose
 from custom_msgs.msg import BBox, BBoxMultiArray
+from tf2_geometry_msgs import do_transform_pose
+from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformStamped
+
 
 # ── Configuration ──────────────────────────────────────────────
 POINTCLOUD_TOPIC = "/helios/pointcloud_rgb"
 BBOX_TOPIC = "/segmentation/bboxes"
 POSITION_TOPIC = "/pose_estimate/position"
 CALIBRATION_FILE = "/home/irol/workspace/ros2_helios2_rgb_kit/src/lucid_camera_node/resource/orientation.yml"
-TARGET_CLS = "Can_1"
 # ───────────────────────────────────────────────────────────────
 
 
 class PoseEstimateNode(Node):
-    def __init__(self):
+    def __init__(self, target_cls: str):
         super().__init__("pose_estimate_node")
+        self._target_cls = target_cls
+        self.get_logger().info(f"Target class: {self._target_cls}")
 
         # ── State ──────────────────────────────────────────────
         self._points_xyz: np.ndarray | None = None
@@ -31,6 +39,10 @@ class PoseEstimateNode(Node):
         self._dist_coeffs = None
         self._rvec = None
         self._tvec = None
+
+        # Cached transform
+        self._cached_transform = None
+        self._transform_update_timer = self.create_timer(0.1, self._update_transform)
 
         # ── Subscribers ────────────────────────────────────────
         self.create_subscription(
@@ -48,15 +60,34 @@ class PoseEstimateNode(Node):
 
         # ── Publisher ──────────────────────────────────────────
         self._position_pub = self.create_publisher(
-            PointStamped,
+            PoseStamped,
             POSITION_TOPIC,
             qos_profile_system_default,
         )
 
-        self.get_logger().info(f"Target : {TARGET_CLS}")
+        self.__tf_buffer = Buffer(
+            node=self, cache_time=Duration(seconds=0, nanoseconds=500000000)
+        )
+        self.__transform_listener = TransformListener(
+            buffer=self.__tf_buffer, node=self, qos=qos_profile_system_default
+        )
+        self.__transform_broadcaster = TransformBroadcaster(
+            node=self, qos=qos_profile_system_default
+        )
+
+        self.get_logger().info(f"Target : {self._target_cls}")
         self.get_logger().info(f"Sub PC : {POINTCLOUD_TOPIC}")
         self.get_logger().info(f"Sub BB : {BBOX_TOPIC}")
         self.get_logger().info(f"Pub pos: {POSITION_TOPIC}")
+
+    # ── Cached TF Update ───────────────────────────────────────
+    def _update_transform(self):
+        try:
+            self._cached_transform = self.__tf_buffer.lookup_transform(
+                "base_link", "helios_camera", rclpy.time.Time()
+            )
+        except Exception:
+            pass  # keep previous cache
 
     # ── Calibration ────────────────────────────────────────────
     def _load_calibration(self):
@@ -88,7 +119,7 @@ class PoseEstimateNode(Node):
             return
 
         # Find target bbox (highest confidence)
-        target_bboxes = [b for b in msg.data if b.cls == TARGET_CLS]
+        target_bboxes = [b for b in msg.data if b.cls == self._target_cls]
         if not target_bboxes:
             return
 
@@ -97,25 +128,40 @@ class PoseEstimateNode(Node):
         # Extract 3D points inside the bbox
         roi_points = self._extract_roi_points(target)
         if roi_points is None or len(roi_points) < 3:
-            self.get_logger().warn(f"[{TARGET_CLS}] Not enough points in bbox")
+            self.get_logger().warn(f"[{self._target_cls}] Not enough points in bbox")
             return
 
         # Remove outliers & compute centroid
         clean = self._remove_outliers_iqr(roi_points)
         centroid = np.median(clean, axis=0)
 
-        # Publish result
-        pos_msg = PointStamped()
-        pos_msg.header.stamp = self.get_clock().now().to_msg()
-        pos_msg.header.frame_id = "helios_camera"
-        pos_msg.point.x = float(centroid[0])
-        pos_msg.point.y = float(centroid[1])
-        pos_msg.point.z = float(centroid[2])
-        self._position_pub.publish(pos_msg)
+        # Publish position and log
+        self._target_object_position_publisher(centroid)
 
         self.get_logger().info(
-            f"[{TARGET_CLS}] pos: ({centroid[0]:.4f}, {centroid[1]:.4f}, {centroid[2]:.4f})"
+            f"[{self._target_cls}] pos: ({centroid[0]:.4f}, {centroid[1]:.4f}, {centroid[2]:.4f})"
         )
+
+    def _target_object_position_publisher(self, position: np.ndarray):
+        if self._cached_transform is None:
+            self.get_logger().warn("No cached transform available yet")
+            return
+
+        pose_camera = Pose()
+        pose_camera.position.x = float(position[0])
+        pose_camera.position.y = float(position[1])
+        pose_camera.position.z = float(position[2])
+        # identity quaternion
+        pose_camera.orientation.w = 1.0
+
+        pose_in_base = do_transform_pose(pose_camera, self._cached_transform)
+
+        pose_stamped = PoseStamped()
+        pose_stamped.header.stamp = self.get_clock().now().to_msg()
+        pose_stamped.header.frame_id = "base_link"
+        pose_stamped.pose.position = pose_in_base.position
+
+        self._position_pub.publish(pose_stamped)
 
     # ── Core Logic ─────────────────────────────────────────────
     def _extract_roi_points(self, bbox: BBox) -> np.ndarray | None:
@@ -198,9 +244,23 @@ class PoseEstimateNode(Node):
         return points[mask]
 
 
+def parse_args():
+    """ROS2 인자를 제거한 뒤 argparse로 파싱"""
+    filtered_args = remove_ros_args(args=sys.argv)
+    parser = argparse.ArgumentParser(description="Pose Estimate Node")
+    parser.add_argument(
+        "--target_cls",
+        type=str,
+        default="Can_1",
+        help="Target class name for detection (default: Can_1)",
+    )
+    return parser.parse_args()  # [1:] to skip script name
+
+
 def main(args=None):
-    rclpy.init(args=args)
-    node = PoseEstimateNode()
+    args = parse_args()
+    rclpy.init(args=sys.argv)
+    node = PoseEstimateNode(target_cls=args.target_cls)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
