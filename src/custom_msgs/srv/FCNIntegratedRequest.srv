@@ -1,0 +1,7 @@
+string target_cls
+---
+bool action
+int64 target_col
+string target_row
+int64 moving_col
+string moving_row

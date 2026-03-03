@@ -1,0 +1,6 @@
+int64 target_col
+int64[] empty_cols
+---
+string moving_row
+int64[] moving_cols
+bool action

@@ -1,0 +1,3 @@
+custom_msgs/BoundingBoxMultiArray request
+---
+custom_msgs/BoundingBox3DMultiArray response

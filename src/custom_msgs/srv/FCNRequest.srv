@@ -1,0 +1,5 @@
+string target_cls
+int64 last_target_col
+---
+int64 target_col
+int64[] empty_cols
