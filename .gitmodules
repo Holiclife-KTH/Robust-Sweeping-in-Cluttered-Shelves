@@ -1,15 +1,13 @@
 [submodule "src/Universal_Robots_ROS2_Driver"]
-	path = src/Universal_Robots_ROS2_Driver
-	url = https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver.git
-	branch = jazzy
+    path = src/Universal_Robots_ROS2_Driver
+    url = https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver.git
+    branch = humble
 [submodule "src/Universal_Robots_Client_Library"]
-	path = src/Universal_Robots_Client_Library
-	url = https://github.com/UniversalRobots/Universal_Robots_Client_Library.git
+    path = src/Universal_Robots_Client_Library
+    url = https://github.com/UniversalRobots/Universal_Robots_Client_Library.git
 [submodule "src/ROS2_Helios2_RGB_KIT"]
-	path = src/ROS2_Helios2_RGB_KIT
-	url = https://github.com/Holiclife-KTH/ROS2_Helios2_RGB_KIT.git
+    path = src/ROS2_Helios2_RGB_KIT
+    url = https://github.com/Holiclife-KTH/ROS2_Helios2_RGB_KIT.git
 [submodule "src/control_package/control_package/POE_Robot_Kinematics_Solver"]
-	path = src/control_package/control_package/POE_Robot_Kinematics_Solver
-	url = https://github.com/Holiclife-KTH/POE_Robot_Kinematics_Solver.git
-[submodule "src/Universal_Robots_ROS2_Driver/"]
-	branch = humble
+    path = src/control_package/control_package/POE_Robot_Kinematics_Solver
+    url = https://github.com/Holiclife-KTH/POE_Robot_Kinematics_Solver.git
