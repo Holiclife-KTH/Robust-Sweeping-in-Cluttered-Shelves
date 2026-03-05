@@ -121,7 +121,7 @@ class SweepPolicy(Node):
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         self._transform_manager = TransformManager(node=self)
-        self._sweep_direction = Direction.RIGHT
+        self._sweep_direction = Direction.LEFT
         self._target_object_sub = self.create_subscription(
             PoseStamped,
             "/pose_estimate/position",

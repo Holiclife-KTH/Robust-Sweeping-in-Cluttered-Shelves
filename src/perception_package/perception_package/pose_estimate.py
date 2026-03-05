@@ -20,7 +20,7 @@ from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformSt
 POINTCLOUD_TOPIC = "/helios/pointcloud_rgb"
 BBOX_TOPIC = "/segmentation/bboxes"
 POSITION_TOPIC = "/pose_estimate/position"
-CALIBRATION_FILE = "/home/irol/workspace/ros2_helios2_rgb_kit/src/lucid_camera_node/resource/orientation.yml"
+CALIBRATION_FILE = "/home/irol/workspace/Robust-Sweeping-in-Cluttered-Shelves/src/ROS2_Helios2_RGB_KIT/src/lucid_camera_node/resource/orientation.yml"
 # ───────────────────────────────────────────────────────────────
 
 

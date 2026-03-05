@@ -15,7 +15,7 @@ from ultralytics.engine.results import Boxes, Results
 from base_package.manager import ImageManager, Manager
 
 # ── Configuration ──────────────────────────────────────────────
-MODEL_PATH = "/home/irol/workspace/project_th/src/pose_estimate/resource/YOLOv26/260301/weights/best.pt"
+MODEL_PATH = "/home/irol/workspace/Robust-Sweeping-in-Cluttered-Shelves/src/perception_package/resource/260301/weights/best.pt"
 CAMERA_TOPIC = "/triton/image_raw"
 SEGMENTATION_TOPIC = "/segmentation/image"
 CONF_THRESHOLD = 0.5
