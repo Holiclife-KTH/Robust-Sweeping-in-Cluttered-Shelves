@@ -11,3 +11,5 @@
 [submodule "src/control_package/control_package/POE_Robot_Kinematics_Solver"]
 	path = src/control_package/control_package/POE_Robot_Kinematics_Solver
 	url = https://github.com/Holiclife-KTH/POE_Robot_Kinematics_Solver.git
+[submodule "src/Universal_Robots_ROS2_Driver/"]
+	branch = humble
