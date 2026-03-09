@@ -11,3 +11,11 @@
 [submodule "src/control_package/control_package/POE_Robot_Kinematics_Solver"]
     path = src/control_package/control_package/POE_Robot_Kinematics_Solver
     url = https://github.com/Holiclife-KTH/POE_Robot_Kinematics_Solver.git
+[submodule "src/urdf_description/ros2_robotiq_gripper"]
+	path = src/urdf_description/ros2_robotiq_gripper
+	url = https://github.com/PickNikRobotics/ros2_robotiq_gripper.git
+	branch = humble
+[submodule "src/urdf_description/Universal_Robots_ROS2_Description"]
+	path = src/urdf_description/Universal_Robots_ROS2_Description
+	url = https://github.com/UniversalRobots/Universal_Robots_ROS2_Description.git
+	branch = humble
