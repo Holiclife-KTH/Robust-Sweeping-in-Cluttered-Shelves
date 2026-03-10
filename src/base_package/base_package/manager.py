@@ -16,9 +16,11 @@ from nav_msgs.msg import *
 from sensor_msgs.msg import *
 from std_msgs.msg import *
 from visualization_msgs.msg import *
-from custom_msgs.msg import *
+from custom_msgs.msg import BoundingBox3D, BoundingBox3DMultiArray
+from moveit_msgs.msg import *
 from tf2_geometry_msgs.tf2_geometry_msgs import PoseStamped as TF2PoseStamped
 from builtin_interfaces.msg import Duration as BuiltinDuration
+
 
 
 from ament_index_python.packages import get_package_share_directory
@@ -268,7 +270,6 @@ class PointcloudManager(Manager):
 
     def publish(self, topic_name: str, msg: PointCloud2):
         self.get_publisher(topic_name).publish(msg)
-
 
 # Dictionary class
 class ObjectManager(Manager):

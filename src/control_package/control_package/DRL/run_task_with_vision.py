@@ -99,11 +99,11 @@ class SweepPolicy(Node):
         super().__init__("sweep_policy_node")
 
         self.robot = URSweepPolicy(
-            model_path="/home/irol/workspace/Robust-Sweeping-in-Cluttered-Shelves/src/control_package/resource/260123"
+            model_path="/home/irol/workspace/Robust-Sweeping-in-Cluttered-Shelves/src/control_package/resource/260310"
         )
 
         # UR
-        IP = "192.168.2.2"
+        IP = "192.168.3.2"
         self.rtde_c = rtde_control.RTDEControlInterface(IP)
         self.rtde_r = rtde_receive.RTDEReceiveInterface(IP)
 
@@ -121,7 +121,7 @@ class SweepPolicy(Node):
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         self._transform_manager = TransformManager(node=self)
-        self._sweep_direction = Direction.LEFT
+        self._sweep_direction = Direction.RIGHT
         self._target_object_sub = self.create_subscription(
             PoseStamped,
             "/pose_estimate/position",

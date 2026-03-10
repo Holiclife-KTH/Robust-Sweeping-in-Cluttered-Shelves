@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-    <xacro:macro name="ur5e_robot_ros2_control" params="name initial_positions_file">
+    <xacro:macro name="ur5e_ros2_control" params="name initial_positions_file">
         <xacro:property name="initial_positions" value="${load_yaml(initial_positions_file)['initial_positions']}"/>
 
         <ros2_control name="${name}" type="system">
@@ -11,7 +11,6 @@
             <joint name="shoulder_pan_joint">
                 <command_interface name="position"/>
                 <command_interface name="velocity"/>
-                <command_interface name="effort"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['shoulder_pan_joint']}</param>
                 </state_interface>
@@ -21,7 +20,6 @@
             <joint name="shoulder_lift_joint">
                 <command_interface name="position"/>
                 <command_interface name="velocity"/>
-                <command_interface name="effort"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['shoulder_lift_joint']}</param>
                 </state_interface>
@@ -31,7 +29,6 @@
             <joint name="elbow_joint">
                 <command_interface name="position"/>
                 <command_interface name="velocity"/>
-                <command_interface name="effort"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['elbow_joint']}</param>
                 </state_interface>
@@ -41,7 +38,6 @@
             <joint name="wrist_1_joint">
                 <command_interface name="position"/>
                 <command_interface name="velocity"/>
-                <command_interface name="effort"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['wrist_1_joint']}</param>
                 </state_interface>
@@ -51,7 +47,6 @@
             <joint name="wrist_2_joint">
                 <command_interface name="position"/>
                 <command_interface name="velocity"/>
-                <command_interface name="effort"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['wrist_2_joint']}</param>
                 </state_interface>
@@ -61,7 +56,6 @@
             <joint name="wrist_3_joint">
                 <command_interface name="position"/>
                 <command_interface name="velocity"/>
-                <command_interface name="effort"/>
                 <state_interface name="position">
                   <param name="initial_value">${initial_positions['wrist_3_joint']}</param>
                 </state_interface>

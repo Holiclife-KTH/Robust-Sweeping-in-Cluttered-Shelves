@@ -26,9 +26,9 @@ src/
 sudo apt install ros-humble-ur
 ```
 ### Moveit2
-'''
+```
 sudo apt install ros-humble-moveit
-'''
+```
 ### Arena SDK
 
 
@@ -66,8 +66,8 @@ python3 -m perception_package.pose_estimate --target_cls {TARGET_CLASS}
 ```
 
 ### Control Node (DRL, UNO-Push, HITL)
-'''
+```
 python3 -m control_package.DRL.run_task_with_vision #DRL Based
-'''
+```
 
 

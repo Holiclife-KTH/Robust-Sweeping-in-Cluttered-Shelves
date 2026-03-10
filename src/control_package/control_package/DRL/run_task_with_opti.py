@@ -96,7 +96,7 @@ class SweepPolicy(Node):
         )
 
         # UR
-        IP = "192.168.2.2"
+        IP = "192.168.3.2"
         self.rtde_c = rtde_control.RTDEControlInterface(IP)
         self.rtde_r = rtde_receive.RTDEReceiveInterface(IP)
 

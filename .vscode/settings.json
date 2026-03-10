@@ -1,11 +1,20 @@
 {
     "python.autoComplete.extraPaths": [
+        "/home/irol/.local/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/custom_msgs/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/build/base_package",
+        "${workspaceFolder}/build/control_package"
     ],
     "python.analysis.extraPaths": [
+        "/home/irol/.local/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/install/custom_msgs/local/lib/python3.10/dist-packages",
+        "${workspaceFolder}/build/base_package",
+        "${workspaceFolder}/build/control_package"
     ],
-    "ROS2.distro": "humble"
+    "ROS2.distro": "humble",
+    "cmake.sourceDirectory": "/home/irol/workspace/Robust-Sweeping-in-Cluttered-Shelves/src/custom_msgs"
 }

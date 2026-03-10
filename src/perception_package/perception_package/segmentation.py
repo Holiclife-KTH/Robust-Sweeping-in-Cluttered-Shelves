@@ -12,7 +12,7 @@ from custom_msgs.msg import BBox, BBoxMultiArray
 from ultralytics import YOLO
 from ultralytics.engine.results import Boxes, Results
 
-from base_package.manager import ImageManager, Manager
+from base_package import ImageManager, Manager
 
 # ── Configuration ──────────────────────────────────────────────
 MODEL_PATH = "/home/irol/workspace/Robust-Sweeping-in-Cluttered-Shelves/src/perception_package/resource/260301/weights/best.pt"

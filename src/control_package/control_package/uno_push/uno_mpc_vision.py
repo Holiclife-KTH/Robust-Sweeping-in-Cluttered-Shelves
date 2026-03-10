@@ -51,7 +51,7 @@ from control_package.POE_Robot_Kinematics_Solver.robot_kinematic_solver import (
 from loguru import logger
 
 # From custom package
-from control_package.data_collertor import (
+from control_package.uno_push.data_collertor import (
     UnoPush,
     CONFIG,
 )
@@ -448,7 +448,7 @@ class UnoMPC(UnoPush):
         self.__i_model = DynamicsModel(data_threshold=CONFIG["data_threshold_motion"])
         self.__mpc = MPCController(self.__f_model, self.__i_model)
 
-        self._direction = Direction.RIGHT  # 푸시 방향 설정 (RIGHT 또는 LEFT)
+        self._direction = Direction.LEFT  # 푸시 방향 설정 (RIGHT 또는 LEFT)
         self.__prev_u = None
 
         self.__params, self.__motions = data_post_processing(

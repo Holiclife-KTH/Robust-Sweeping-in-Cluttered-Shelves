@@ -40,7 +40,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 # Local
 from rotutils import *
 from base_package.manager import TransformManager
-from POE_Robot_Kinematics_Solver.robot_kinematic_solver import (
+from control_package.POE_Robot_Kinematics_Solver.robot_kinematic_solver import (
     RobotKinematicsPOE,
     transform_to_pose,
     pose_to_transform,

@@ -118,7 +118,7 @@ class URSweepPolicy(PolicyController):
         obs[8:14] = self.current_joint_velocities
         obs[14:21] = self._previous_action
         obs[21:24] = self.target_pos
-        obs[24] = 0.1  # self._target_object_width
+        obs[24] = 0.08  # self._target_object_width
         obs[25:32] = self.current_tcp_pose
         obs[32:35] = self.goal_pos  # self._goal_pos
 

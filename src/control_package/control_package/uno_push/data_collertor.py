@@ -37,7 +37,7 @@ from typing import Type, Any
 # import torch
 import math
 import time
-from POE_Robot_Kinematics_Solver.robot_kinematic_solver import (
+from control_package.POE_Robot_Kinematics_Solver.robot_kinematic_solver import (
     RobotKinematicsPOE,
     transform_to_pose,
     pose_to_transform,
@@ -233,7 +233,7 @@ class UR5E_Controller(object):
     def __init__(self, node: Node):
         self.__node = node
 
-        IP = "192.168.2.2"
+        IP = "192.168.3.2"
 
         self.solver = RobotKinematicsPOE(UR5E_CONFIG)
         self.__rtde_c = rtde_control.RTDEControlInterface(IP)
