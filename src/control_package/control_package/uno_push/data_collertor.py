@@ -250,6 +250,23 @@ class UR5E_Controller(object):
         current_tcp_pose = transform_to_pose(T)
         return current_tcp_pose
 
+    @property
+    def current_tcp_pose_in_base_link(self) -> np.ndarray:
+        T = self.solver.forward_kinematics(self.__rtde_r.getActualQ())
+        current_tcp_pose = transform_to_pose(T)
+
+        # Z축 기준 180도 회전 적용
+        R_z_180 = np.array([
+            [-1,  0,  0,  0],
+            [ 0, -1,  0,  0],
+            [ 0,  0,  1,  0],
+            [ 0,  0,  0,  1],
+        ])
+        T = pose_to_transform(current_tcp_pose)
+        T_rotated = T @ R_z_180
+        rotated_pose = transform_to_pose(T_rotated)
+        return rotated_pose
+
     def moveL(self, pose: np.ndarray):
         # pose: [x, y, z, rx, ry, rz]
         pose_T = pose_to_transform(pose)
@@ -354,6 +371,7 @@ class UnoPush(Node):
         target_alpha: float,
         beta: float,
         obj_pos: PoseStamped,
+        virtual_radius: float = None,
         ignore: bool = False,
     ) -> np.ndarray:
         """
@@ -391,10 +409,12 @@ class UnoPush(Node):
                 )
             )
 
+        if virtual_radius is None:
+            virtual_radius = self._object_virtual_radius
         offsets = np.array(
             [
-                np.sin(alphas) * self._object_virtual_radius,
-                np.cos(alphas) * self._object_virtual_radius,
+                np.sin(alphas) * virtual_radius,
+                np.cos(alphas) * virtual_radius,
                 np.full_like(alphas, -1.0 * (1.05 - 0.79505 + 0.09)),
                 np.zeros_like(alphas),
                 np.full_like(alphas, 1.57),

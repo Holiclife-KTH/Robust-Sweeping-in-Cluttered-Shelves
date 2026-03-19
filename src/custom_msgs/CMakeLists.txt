@@ -23,11 +23,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BoundingBoxMultiArray.msg"
   "msg/BoundingBox3D.msg"
   "msg/BoundingBox3DMultiArray.msg"
+  "msg/DRLLogging.msg"
   "srv/FCNRequest.srv"
   "srv/FCNOccupiedRequest.srv"
   "srv/MegaposeRequest.srv"
   "srv/FCNIntegratedRequest.srv"
   "srv/LogRequest.srv"
+  "srv/LoggerRequest.srv"
   DEPENDENCIES geometry_msgs std_msgs nav_msgs
 )
 

@@ -9,6 +9,7 @@ from rclpy.qos import qos_profile_system_default
 from rclpy.duration import Duration
 from rclpy.utilities import remove_ros_args
 
+from std_msgs.msg import Float32
 from sensor_msgs.msg import PointCloud2
 from geometry_msgs.msg import PointStamped, PoseStamped, Pose
 from custom_msgs.msg import BBox, BBoxMultiArray
@@ -64,6 +65,11 @@ class PoseEstimateNode(Node):
             POSITION_TOPIC,
             qos_profile_system_default,
         )
+        self._object_width_pub = self.create_publisher(
+            Float32,
+            "/pose_estimate/width",
+            qos_profile_system_default,
+        )
 
         self.__tf_buffer = Buffer(
             node=self, cache_time=Duration(seconds=0, nanoseconds=500000000)
@@ -79,6 +85,8 @@ class PoseEstimateNode(Node):
         self.get_logger().info(f"Sub PC : {POINTCLOUD_TOPIC}")
         self.get_logger().info(f"Sub BB : {BBOX_TOPIC}")
         self.get_logger().info(f"Pub pos: {POSITION_TOPIC}")
+
+        self.__object_width = None
 
     # ── Cached TF Update ───────────────────────────────────────
     def _update_transform(self):
@@ -135,8 +143,14 @@ class PoseEstimateNode(Node):
         clean = self._remove_outliers_iqr(roi_points)
         centroid = np.median(clean, axis=0)
 
+        _min_y, max_y = np.min(clean[:, 0]), np.max(clean[:, 0])
+        if self.__object_width is None:
+            self.__object_width = (max_y - _min_y)/2
+            self.get_logger().info(f"[{self._target_cls}] Estimated width: {self.__object_width:.4f} m")
+
         # Publish position and log
         self._target_object_position_publisher(centroid)
+        self.__target_object_width_publisher(self.__object_width)
 
         self.get_logger().info(
             f"[{self._target_cls}] pos: ({centroid[0]:.4f}, {centroid[1]:.4f}, {centroid[2]:.4f})"
@@ -155,13 +169,18 @@ class PoseEstimateNode(Node):
         pose_camera.orientation.w = 1.0
 
         pose_in_base = do_transform_pose(pose_camera, self._cached_transform)
-
+        # pose_in_base.position.y -= 0.04
         pose_stamped = PoseStamped()
         pose_stamped.header.stamp = self.get_clock().now().to_msg()
         pose_stamped.header.frame_id = "base_link"
         pose_stamped.pose.position = pose_in_base.position
 
         self._position_pub.publish(pose_stamped)
+    
+    def __target_object_width_publisher(self, width: float):
+        msg = Float32()
+        msg.data = width + 0.05  # add margin for safety
+        self._object_width_pub.publish(msg)
 
     # ── Core Logic ─────────────────────────────────────────────
     def _extract_roi_points(self, bbox: BBox) -> np.ndarray | None:

@@ -88,6 +88,12 @@ class URSweepPolicy(PolicyController):
 
         self.goal_pos = pos
 
+    def update_width(self, width: float) -> None:
+        assert isinstance(width, float), "Width must be a float."
+        assert width > 0, "Width must be positive."
+
+        self._target_object_width = width
+
     def _compute_observation(self) -> np.ndarray:
         """
         Compute the observation vector for the policy network.
@@ -118,7 +124,7 @@ class URSweepPolicy(PolicyController):
         obs[8:14] = self.current_joint_velocities
         obs[14:21] = self._previous_action
         obs[21:24] = self.target_pos
-        obs[24] = 0.08  # self._target_object_width
+        obs[24] = self._target_object_width
         obs[25:32] = self.current_tcp_pose
         obs[32:35] = self.goal_pos  # self._goal_pos
 

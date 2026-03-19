@@ -6,6 +6,8 @@ import time
 import enum
 from enum import Enum
 import warnings
+import datetime
+import argparse
 
 # Third-party: Data science
 import pandas as pd
@@ -26,6 +28,7 @@ from rclpy.qos import QoSProfile, qos_profile_system_default
 from rclpy.duration import Duration
 from tf2_ros import *
 from tf2_geometry_msgs import do_transform_pose
+from rclpy.utilities import remove_ros_args
 
 # Third-party: ROS2 Messages
 from std_msgs.msg import *
@@ -36,6 +39,7 @@ from nav_msgs.msg import *
 from visualization_msgs.msg import *
 from control_msgs.msg import JointTrajectoryControllerState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from custom_msgs.srv import LoggerRequest
 
 # Local
 from rotutils import *
@@ -436,13 +440,14 @@ class TrajectoryPublisher(object):
 
 
 class UnoMPC(UnoPush):
-    def __init__(self, perception_mode: str = "opti"):
+    def __init__(self, perception_mode: str = "opti", log: bool = False):
         super().__init__(node_name="uno_mpc_node", perception_mode=perception_mode)
 
         # System Parameters
         self.__hz = 10.0  # 제어 주파수
-        self.__distance_threshold = 0.01  # 목표 도달로 간주하는 거리 (m)
-        self.__log: bool = True  # 로그 출력 여부
+        self.__logging_hz = 1.0/100.0
+        self.__distance_threshold = 0.03  # 목표 도달로 간주하는 거리 (m)
+        self.__log: bool = log  # 로그 출력 여부
 
         self.__f_model = DynamicsModel(data_threshold=CONFIG["data_threshold_u"])
         self.__i_model = DynamicsModel(data_threshold=CONFIG["data_threshold_motion"])
@@ -450,7 +455,10 @@ class UnoMPC(UnoPush):
 
         self._direction = Direction.LEFT  # 푸시 방향 설정 (RIGHT 또는 LEFT)
         self.__prev_u = None
-
+        self.__target_object_width:float = None
+        self._transform_manager = TransformManager(node=self)
+        self._tcp_pose_in_base_link: PoseStamped = None
+    
         self.__params, self.__motions = data_post_processing(
             "/home/irol/workspace/Robust-Sweeping-in-Cluttered-Shelves/src/control_package/resource/collected_data5.csv",
             direction=self._direction,
@@ -460,8 +468,23 @@ class UnoMPC(UnoPush):
             self, topic_name="mpc_trajectory", base_frame="base"
         )
 
+        self._uno_logging_publisher = self.create_publisher(
+            PoseStamped,
+            "/uno_push_logging",
+            qos_profile=qos_profile_system_default,
+        )
+
+        self._target_object_width_sub = self.create_subscription(
+            Float32,
+            "/pose_estimate/width",
+            self._target_object_width_callback,
+             qos_profile=qos_profile_system_default,
+        )
+        self.timer = self.create_timer(self.__logging_hz, self.tcp_logger_callback)
+
         # INIT
         # self._push_distance = CONFIG["exact_push_distance"]
+        self.__start_time = datetime.datetime.now()
         self._controller.reset()
 
     def _vision_callback(self, msg: PoseStamped):
@@ -488,10 +511,27 @@ class UnoMPC(UnoPush):
         # 궤적 시각화
         self._trajectory_publisher.publish_trajectory(ref_path)
 
-    def reset(self):
-        self._controller.reset()
-        self.__prev_u = None
-        self._last_alpha = None
+
+    def tcp_logger_callback(self):
+        if self.__log:
+            tcp_pose_in_base = self._controller.current_tcp_pose
+            tcp_pose_in_base_pose: Pose = Pose()
+            tcp_pose_in_base_pose.position.x = tcp_pose_in_base[0]
+            tcp_pose_in_base_pose.position.y = tcp_pose_in_base[1]
+            tcp_pose_in_base_pose.position.z = tcp_pose_in_base[2]
+
+            self._tcp_pose_in_base_link: PoseStamped = self._transform_manager.transform_pose(
+                    tcp_pose_in_base_pose, target_frame="base_link", source_frame="base",
+                )
+            if self._tcp_pose_in_base_link is not None:
+                self._uno_logging_publisher.publish(self._tcp_pose_in_base_link)
+
+    def _target_object_width_callback(self, msg: Float32):
+        # self.get_logger().info(f"Received target object width: {msg.data}")
+        if msg is None:
+            return
+        
+        self.__target_object_width = msg.data
 
     def _calculate_target_path(
         self, direction: Direction, ref_path_length=50
@@ -556,6 +596,7 @@ class UnoMPC(UnoPush):
             target_alpha=alpha,
             beta=beta,
             obj_pos=obj_pos,
+            virtual_radius=self.__target_object_width if self.__target_object_width is not None else None,
             ignore=False,
         )
         if self._last_alpha is None:
@@ -636,13 +677,6 @@ class UnoMPC(UnoPush):
             # 푸시 방향은 alpha_t와 beta_t가 결정하는 목표 진입 각도의 반대 방향(물체를 향함)
             push_angle = alpha_t + beta_t + np.pi
 
-            # self.get_logger().info(
-            #     f"Smoothened Execution 발동: 궤적을 부드럽게 연결합니다. P'={p_prime}"
-            # )
-
-            # [TODO] 컨트롤러에 p_prime 위치로 이동 후 push_dir 방향으로 d 만큼 밀도록 명령 전달
-            # self._controller.moveL(pose=p_prime)
-            # self._controller.push(direction=push_dir, distance=d)
 
             return p_prime
 
@@ -672,11 +706,6 @@ class UnoMPC(UnoPush):
             self.__f_model.update(param, motion)
             self.__i_model.update(motion, param)
 
-            if self.__log:
-                print(
-                    f"Data Point {k+1}/{len(self.__params)}: Param={param}, Motion={motion}"
-                )
-
         print(f"   Forward model data points: {len(self.__f_model.X_train)}")
         print(f"   Inverse model data points: {len(self.__i_model.X_train)}")
 
@@ -684,9 +713,7 @@ class UnoMPC(UnoPush):
         reference_path: np.ndarray = self._calculate_target_path(
             self._direction, ref_path_length=500
         )
-        # reference_path = self._calculate_sine_target_path(
-        #     Direction.RIGHT, ref_path_length=50
-        # )
+    
 
         self.get_logger().info(f"목표 위치: {reference_path[-1, :2]}")
 
@@ -748,10 +775,6 @@ class UnoMPC(UnoPush):
                     0.1,
                 )
 
-            # self.get_logger().info(
-            #     f"실제 움직인 거리: {np.linalg.norm(real_motion) * 1000.0:.3f}mm, Push distance: {self._push_distance * 1000.0:.3f}mm"
-            # )
-
             normalized_real_motion = (
                 real_motion / (np.linalg.norm(real_motion) + 1e-6)
             ) * 0.02
@@ -760,18 +783,63 @@ class UnoMPC(UnoPush):
                 self.__f_model.update(u_opt, normalized_real_motion)
                 self.__i_model.update(normalized_real_motion, u_opt)
 
+
             r.sleep()
+
+    def homing(self):
+        # 홈 위치로 이동하는 코드 추가
+        current_tcp_pose = self._controller.current_tcp_pose
+
+        waypoint_1 = current_tcp_pose.copy()
+        waypoint_1[0] = -0.5  # x 방향으로 10
+        
+        path1 = np.linspace(current_tcp_pose, waypoint_1, num=20)
+        self._controller.moveTraj(pose_path=path1)
+
+        self._controller.reset()
+
+
+
+def parse_args():
+    """ROS2 인자를 제거한 뒤 argparse로 파싱"""
+    filtered_args = remove_ros_args(args=sys.argv)
+    parser = argparse.ArgumentParser(description="Pose Estimate Node")
+    parser.add_argument(
+        "--log",
+        type=bool,
+        default=False,
+        help="Set true for data logging."
+    )
+
+    return parser.parse_args()
+
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    uno_mpc_node = UnoMPC(perception_mode="vision")
+    args = parse_args()
+    rclpy.init(args=sys.argv)
+    uno_mpc_node = UnoMPC(perception_mode="vision", 
+                          log= args.log
+                       )
 
     import threading
 
     th = threading.Thread(target=rclpy.spin, args=(uno_mpc_node,), daemon=True)
     th.start()
-
+    if args.log:
+        # --- 로깅 시작 서비스 요청 ---
+        logger_client = uno_mpc_node.create_client(LoggerRequest, 'logger_request')
+        if logger_client.wait_for_service(timeout_sec=5.0):
+            print("Logger service is available. Sending start request...")
+            start_req = LoggerRequest.Request()
+            start_req.start_logging = True
+            start_req.direction = uno_mpc_node._direction.value
+            future = logger_client.call_async(start_req)
+            while not future.done():
+                time.sleep(0.05)
+            uno_mpc_node.get_logger().info("Logger start request sent.")
+        else:
+            uno_mpc_node.get_logger().warn("Logger service not available, proceeding without logging service.")
     uno_mpc_node.run()
 
     r = uno_mpc_node.create_rate(30.0)
@@ -780,13 +848,17 @@ def main(args=None):
         uno_mpc_node.waiting()
         r.sleep()
 
-    uno_mpc_node.reset()
-    r.sleep()
+    uno_mpc_node.homing()
+    
+    if args.log and logger_client.service_is_ready():
+        stop_req = LoggerRequest.Request()
+        stop_req.start_logging = False
+        future = logger_client.call_async(stop_req)
+        while not future.done():
+            time.sleep(0.05)
+        uno_mpc_node.get_logger().info("Logger stop request sent.")
 
-    while rclpy.ok():
-        r.sleep()
-
-    th.join()
+    th.join(timeout=1.0)  # 스핀 스레드가 종료될 때까지 대기 (타임아웃 추가)
     uno_mpc_node.destroy_node()
     rclpy.shutdown()
 

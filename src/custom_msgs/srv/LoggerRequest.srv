@@ -1,0 +1,5 @@
+bool start_logging
+int8 direction
+---
+bool success
+string message
