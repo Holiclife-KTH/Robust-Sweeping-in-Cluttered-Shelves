@@ -23,7 +23,8 @@ src/
 ## Prerequisites
 ### Universal robot driver (Humble)
 ```
-sudo apt install ros-humble-ur
+sudo apt install ros-humble-ur<img width="930" height="748" alt="image (4)" src="https://github.com/user-attachments/assets/5b2f1a5a-5ee3-4ceb-93a0-2af137120333" />
+
 ```
 ### Moveit2
 ```
@@ -64,6 +65,11 @@ ros2 run lucid_camera_node lucid_node
 python3 -m perception_package.segmentation
 python3 -m perception_package.pose_estimate --target_cls {TARGET_CLASS}
 ```
+
+<img width="1145" height="610" alt="image (5)" src="https://github.com/user-attachments/assets/8031796b-8505-453e-8060-ef363745a90e" />
+<img width="785" height="609" alt="image (3)" src="https://github.com/user-attachments/assets/1b9d19bb-60fb-4059-b7bf-76fc8a7ba4cd" />
+<img width="930" height="748" alt="image (4)" src="https://github.com/user-attachments/assets/9f6231d7-705c-4623-85b7-104d9f9262b4" />
+
 
 ### Control Node (DRL, UNO-Push, HITL)
 ```
